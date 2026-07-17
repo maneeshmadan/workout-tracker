@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Workout">
 <title>Workout Tracker</title>
 <style>
   :root { color-scheme: dark; }
@@ -16,7 +17,8 @@
     margin: 0;
     padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   }
-  h2 { margin: 0 0 16px 0; font-size: 26px; font-weight: 700; }
+  h2 { margin: 0 0 4px 0; font-size: 26px; font-weight: 700; }
+  .subtitle { color: #8e8e93; font-size: 13px; margin-bottom: 16px; }
   table { width: 100%; border-collapse: collapse; table-layout: auto; }
   th {
     color: #8e8e93;
@@ -25,14 +27,16 @@
     border-bottom: 1px solid #38383a;
     text-align: left;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
   th:nth-child(2), td:nth-child(2) { text-align: center; }
   th:nth-child(3), td:nth-child(3) { text-align: center; }
   th:nth-child(4), td:nth-child(4) { text-align: right; }
   td { padding: 12px 0; border-bottom: 1px solid #1c1c1e; vertical-align: middle; }
   .exercise { font-weight: 600; color: #0a84ff; font-size: 14px; line-height: 1.25; padding-right: 6px; }
-  .range { display: block; font-size: 11px; font-weight: 400; color: #8e8e93; margin-top: 2px; }
-  .stat { font-size: 16px; font-weight: 500; white-space: nowrap; padding: 0 4px; }
+  .range { display: block; color: #8e8e93; font-weight: 400; font-size: 11px; margin-top: 2px; }
+  .stat { font-size: 16px; font-weight: 600; white-space: nowrap; padding: 0 2px; }
   .controls { display: flex; gap: 6px; justify-content: flex-end; }
   button {
     background: #2c2c2e;
@@ -54,18 +58,20 @@
   .reset {
     margin-top: 24px;
     width: 100%;
-    height: 44px;
-    border-radius: 10px;
     background: #1c1c1e;
     color: #ff453a;
+    height: 44px;
+    border-radius: 10px;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
+    border: none;
   }
   .reset:active { background: #2c2c2e; }
 </style>
 </head>
 <body>
   <h2>Workout</h2>
+  <div class="subtitle">Tap + to progress reps. At max reps, + adds weight and resets reps.</div>
   <table>
     <thead>
       <tr>
@@ -81,19 +87,20 @@
 
   <script>
     const defaultData = [
-      { exercise: 'Leg Press',        sets: '3', reps: 8,  weight: 70, minReps: 8,  maxReps: 12, step: 5 },
-      { exercise: 'Vertical Traction', sets: '3', reps: 8,  weight: 80, minReps: 8,  maxReps: 12, step: 5 },
-      { exercise: 'Chest Press',      sets: '3', reps: 9,  weight: 60, minReps: 8,  maxReps: 12, step: 5 },
-      { exercise: 'Low Row',          sets: '3', reps: 8,  weight: 80, minReps: 8,  maxReps: 12, step: 5 },
-      { exercise: 'Leg Curl',         sets: '2', reps: 11, weight: 60, minReps: 10, maxReps: 12, step: 5 },
-      { exercise: 'Lower Back',       sets: '2', reps: 13, weight: 60, minReps: 12, maxReps: 15, step: 5 },
-      { exercise: 'Abdominal',        sets: '2', reps: 13, weight: 70, minReps: 12, maxReps: 15, step: 5 }
+      { exercise: 'Leg Press',        sets: '3×8-12',  reps: 8,  weight: 70, minReps: 8,  maxReps: 12, step: 10 },
+      { exercise: 'Vertical Traction',sets: '3×8-12',  reps: 8,  weight: 80, minReps: 8,  maxReps: 12, step: 10 },
+      { exercise: 'Chest Press',      sets: '3×8-12',  reps: 9,  weight: 60, minReps: 8,  maxReps: 12, step: 10 },
+      { exercise: 'Low Row',          sets: '3×8-12',  reps: 8,  weight: 80, minReps: 8,  maxReps: 12, step: 10 },
+      { exercise: 'Leg Curl',         sets: '2×10-12', reps: 11, weight: 60, minReps: 10, maxReps: 12, step: 10 },
+      { exercise: 'Lower Back',       sets: '2×12-15', reps: 13, weight: 60, minReps: 12, maxReps: 15, step: 10 },
+      { exercise: 'Abdominal',        sets: '2×12-15', reps: 13, weight: 70, minReps: 12, maxReps: 15, step: 10 }
     ];
 
-    let data = JSON.parse(localStorage.getItem('workoutData')) || defaultData;
+    const STORAGE_KEY = 'workoutTrackerV1';
+    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || JSON.parse(JSON.stringify(defaultData));
 
     function saveAndRender() {
-      localStorage.setItem('workoutData', JSON.stringify(data));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       render();
     }
 
@@ -114,14 +121,13 @@
         item.reps--;
       } else {
         item.reps = item.maxReps;
-        item.weight -= item.step;
-        if (item.weight < 0) item.weight = 0;
+        item.weight = Math.max(0, item.weight - item.step);
       }
       saveAndRender();
     }
 
     function resetAll() {
-      if (confirm('Reset all exercises to default reps and weights?')) {
+      if (confirm('Reset all exercises to their starting reps and weights?')) {
         data = JSON.parse(JSON.stringify(defaultData));
         saveAndRender();
       }
@@ -131,7 +137,7 @@
       const app = document.getElementById('app');
       app.innerHTML = data.map((item, i) => `
         <tr>
-          <td class="exercise">${item.exercise}<span class="range">${item.sets}×${item.minReps}-${item.maxReps}</span></td>
+          <td class="exercise">${item.exercise}<span class="range">${item.sets}</span></td>
           <td class="stat">${item.reps}</td>
           <td class="stat">${item.weight}</td>
           <td>
